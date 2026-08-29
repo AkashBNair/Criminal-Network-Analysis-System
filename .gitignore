@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Environment variables (SECRETS)
+.env
+.env.local
+.env.production
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+*.db-journal
+
+# Cache & generated data
+data/*.json
+backend/data/justification_cache.json
+backend/data/llm_cache.json
+backend/data/mo_cache.json
+backend/data/signature_cache.json
+backend/data/case_linkage/
+
+# Freebuff internal
+.freebuff/
+.cursor/
+
+# Build output
+frontend/dist/
+frontend/build/
+backend/*.egg-info/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+*.err
+npm-debug.log*
+
+# Uploaded case files (user data)
+backend/uploads/
+
+# Temp scripts
+backend/_*.py
+backend/_*.b64
+
+# Case documents (user-specific)
+case files/
+serial/
+case 2/
