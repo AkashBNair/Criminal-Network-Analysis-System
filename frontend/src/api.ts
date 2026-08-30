@@ -174,6 +174,11 @@ export const api = {
     return request(`/admin/audit-log${qs}`)
   },
 
+  // Blockchain Chain Verification
+  getChainStatus: () => request('/admin/audit-log/chain-status'),
+  verifyChain: (limit = 0) => request(`/admin/audit-log/verify-chain?limit=${limit}`, { method: 'POST' }),
+  getChainBlock: (blockIndex: number) => request(`/admin/audit-log/chain-block/${blockIndex}`),
+
   // Reports
   exportReport: async (caseId: string, reportType: string, _entityId?: string) => {
     const response = await request(`/reports/export?case_id=${caseId}&report_type=${reportType}`)

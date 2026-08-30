@@ -1,17 +1,23 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
-import { Shield, Users, ScrollText, Plus } from 'lucide-react'
+import { Shield, Users, ScrollText, Plus, Link2, CheckCircle, AlertTriangle, Clock, RefreshCw } from 'lucide-react'
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<'users' | 'audit'>('users')
+  const [tab, setTab] = useState<'users' | 'audit' | 'chain'>('users')
   const [users, setUsers] = useState<any[]>([])
   const [auditLogs, setAuditLogs] = useState<any[]>([])
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [newUser, setNewUser] = useState({ username: '', email: '', full_name: '', password: '', role: 'investigating_officer' })
 
-  useEffect(() => { if (tab === 'users') loadUsers(); else loadAuditLogs() }, [tab])
+  useEffect(() => { if (tab === 'users') loadUsers(); else if (tab === 'audit') loadAuditLogs(); else if (tab === 'chain') { loadChainStatus(); verifyChain(); } }, [tab])
+  const [chainStatus, setChainStatus] = useState<any>(null)
+  const [chainVerification, setChainVerification] = useState<any>(null)
+  const [verifying, setVerifying] = useState(false)
+
   const loadUsers = async () => { try { const data = await api.getUsers(); setUsers(data) } catch (err) { console.error(err) } }
   const loadAuditLogs = async () => { try { const data = await api.getAuditLog(); setAuditLogs(data) } catch (err) { console.error(err) } }
+  const loadChainStatus = async () => { try { const data = await api.getChainStatus(); setChainStatus(data) } catch (err) { console.error(err) } }
+  const verifyChain = async () => { setVerifying(true); try { const data = await api.verifyChain(); setChainVerification(data) } catch (err) { console.error(err) } setVerifying(false) }
 
   const handleCreateUser = async (e: React.FormEvent) => { e.preventDefault(); try { await api.createUser(newUser); setShowCreateUser(false); setNewUser({ username: '', email: '', full_name: '', password: '', role: 'investigating_officer' }); loadUsers() } catch (err: any) { alert(err.message) } }
 
@@ -25,6 +31,7 @@ export default function AdminPage() {
       <div className="flex gap-2 mb-5">
         <button onClick={() => setTab('users')} className="btn-ops px-4 py-2 rounded-lg text-[11px] font-semibold" style={tab === 'users' ? { background: 'var(--ops-accent-bg)', borderColor: 'rgba(0, 229, 255, 0.2)', color: 'var(--ops-accent)' } : {}}><Users size={14} className="inline mr-1" /> USERS</button>
         <button onClick={() => setTab('audit')} className="btn-ops px-4 py-2 rounded-lg text-[11px] font-semibold" style={tab === 'audit' ? { background: 'var(--ops-accent-bg)', borderColor: 'rgba(0, 229, 255, 0.2)', color: 'var(--ops-accent)' } : {}}><ScrollText size={14} className="inline mr-1" /> AUDIT</button>
+        <button onClick={() => setTab('chain')} className="btn-ops px-4 py-2 rounded-lg text-[11px] font-semibold" style={tab === 'chain' ? { background: 'var(--ops-accent-bg)', borderColor: 'rgba(0, 229, 255, 0.2)', color: 'var(--ops-accent)' } : {}}><Link2 size={14} className="inline mr-1" /> CHAIN</button>
       </div>
 
       {tab === 'users' && (
@@ -77,6 +84,107 @@ export default function AdminPage() {
             ))}</tbody>
           </table>
           {auditLogs.length === 0 && <div className="p-8 text-center text-[11px]" style={{ color: 'var(--ops-text-muted)' }}>No audit logs</div>}
+        </div>
+      )}
+
+      {tab === 'chain' && (
+        <div className="space-y-4">
+          {/* Chain Status Cards */}
+          {chainStatus && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="ops-panel p-4">
+                <p className="text-[9px] font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--ops-text-muted)' }}>Total Entries</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--ops-text-primary)' }}>{chainStatus.total_entries}</p>
+              </div>
+              <div className="ops-panel p-4">
+                <p className="text-[9px] font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--ops-text-muted)' }}>Chained</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--ops-success)' }}>{chainStatus.chained_entries}</p>
+              </div>
+              <div className="ops-panel p-4">
+                <p className="text-[9px] font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--ops-text-muted)' }}>Unchained</p>
+                <p className="text-2xl font-bold" style={{ color: chainStatus.unchained_entries > 0 ? 'var(--ops-warning)' : 'var(--ops-success)' }}>{chainStatus.unchained_entries}</p>
+              </div>
+              <div className="ops-panel p-4">
+                <p className="text-[9px] font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--ops-text-muted)' }}>Chain Integrity</p>
+                <div className="flex items-center gap-2">
+                  {chainStatus.chain_integrity === 'full' ? (
+                    <><CheckCircle size={18} style={{ color: 'var(--ops-success)' }} /><span className="text-sm font-bold" style={{ color: 'var(--ops-success)' }}>FULL</span></>
+                  ) : (
+                    <><AlertTriangle size={18} style={{ color: 'var(--ops-warning)' }} /><span className="text-sm font-bold" style={{ color: 'var(--ops-warning)' }}>PARTIAL</span></>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Verify Button */}
+          <div className="flex items-center gap-3">
+            <button onClick={verifyChain} disabled={verifying} className="btn-ops-primary px-5 py-2.5 rounded-lg text-[11px] font-semibold">
+              <RefreshCw size={14} className={`inline mr-2 ${verifying ? 'animate-spin' : ''}`} />
+              {verifying ? 'VERIFYING...' : 'VERIFY CHAIN INTEGRITY'}
+            </button>
+            {chainStatus && (
+              <span className="text-[10px] font-mono" style={{ color: 'var(--ops-text-muted)' }}>
+                Last block: #{chainStatus.last_block_index} • Hash: {chainStatus.last_block_hash}
+              </span>
+            )}
+          </div>
+
+          {/* Verification Result */}
+          {chainVerification && (
+            <div className="ops-panel p-5">
+              <div className="flex items-center gap-3 mb-4">
+                {chainVerification.is_valid ? (
+                  <><CheckCircle size={24} style={{ color: 'var(--ops-success)' }} /><div><h3 className="text-sm font-bold tracking-wider" style={{ color: 'var(--ops-success)' }}>CHAIN VERIFIED — INTEGRITY CONFIRMED</h3><p className="text-[10px]" style={{ color: 'var(--ops-text-muted)' }}>No tampering detected across {chainVerification.verified_blocks} blocks</p></div></>
+                ) : (
+                  <><AlertTriangle size={24} style={{ color: 'var(--ops-critical)' }} /><div><h3 className="text-sm font-bold tracking-wider" style={{ color: 'var(--ops-critical)' }}>CHAIN TAMPERING DETECTED</h3><p className="text-[10px]" style={{ color: 'var(--ops-text-muted)' }}>{chainVerification.error_message}</p></div></>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-lg" style={{ background: 'var(--ops-bg-secondary)' }}>
+                  <p className="text-[9px] font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--ops-text-muted)' }}>Blocks Checked</p>
+                  <p className="text-lg font-bold" style={{ color: 'var(--ops-text-primary)' }}>{chainVerification.total_blocks}</p>
+                </div>
+                <div className="p-3 rounded-lg" style={{ background: 'var(--ops-bg-secondary)' }}>
+                  <p className="text-[9px] font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--ops-text-muted)' }}>Verified OK</p>
+                  <p className="text-lg font-bold" style={{ color: 'var(--ops-success)' }}>{chainVerification.verified_blocks}</p>
+                </div>
+                <div className="p-3 rounded-lg" style={{ background: 'var(--ops-bg-secondary)' }}>
+                  <p className="text-[9px] font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--ops-text-muted)' }}>Verification Time</p>
+                  <p className="text-lg font-bold" style={{ color: 'var(--ops-text-primary)' }}>{chainVerification.duration_ms?.toFixed(1)}ms</p>
+                </div>
+              </div>
+
+              {!chainVerification.is_valid && chainVerification.tampered_audit_log_id && (
+                <div className="mt-4 p-3 rounded-lg border" style={{ background: 'var(--ops-critical-bg)', borderColor: 'rgba(255, 71, 87, 0.2)' }}>
+                  <p className="text-[10px] font-mono" style={{ color: 'var(--ops-critical)' }}>
+                    Tampered Block Index: #{chainVerification.first_tampered_block_index}
+                  </p>
+                  <p className="text-[10px] font-mono" style={{ color: 'var(--ops-critical)' }}>
+                    Audit Log ID: {chainVerification.tampered_audit_log_id}
+                  </p>
+                  <p className="text-[10px] font-mono mt-1" style={{ color: 'var(--ops-text-muted)' }}>
+                    Expected: {chainVerification.expected_hash?.slice(0, 32)}...
+                  </p>
+                  <p className="text-[10px] font-mono" style={{ color: 'var(--ops-critical)' }}>
+                    Found: {chainVerification.actual_hash?.slice(0, 32)}...
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Explanation */}
+          <div className="ops-panel p-4">
+            <h4 className="text-[11px] font-bold tracking-wider mb-2" style={{ color: 'var(--ops-text-primary)' }}>HOW IT WORKS</h4>
+            <div className="space-y-2 text-[10px]" style={{ color: 'var(--ops-text-muted)' }}>
+              <p>• Every audit log entry is SHA-256 hashed and chained to the previous entry</p>
+              <p>• Each block stores the hash of the prior block, forming an immutable chain</p>
+              <p>• Any modification to a historical entry breaks the chain and is detected on verification</p>
+              <p>• New entries added after verification are automatically chained</p>
+            </div>
+          </div>
         </div>
       )}
     </div>

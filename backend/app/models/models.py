@@ -258,5 +258,12 @@ class AuditLog(Base):
     details = Column(JSON, default=dict)
     ip_address = Column(String(45), nullable=True)
     timestamp = Column(DateTime, default=utcnow)
+    # --- Blockchain hash-chain fields for tamper detection ---
+    block_index = Column(Integer, nullable=True)        # position in the chain
+    previous_hash = Column(String(64), nullable=True)   # hash of the prior block
+    block_hash = Column(String(64), nullable=True)      # hash of this block
+    details_hash = Column(String(64), nullable=True)    # SHA-256 of the details JSON
+    block_timestamp = Column(String(40), nullable=True) # exact ISO string used in hash
+    nonce = Column(Integer, default=0)                  # reserved for future use
 
     user = relationship("User", back_populates="audit_logs")
